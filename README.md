@@ -1,8 +1,8 @@
-| ![lenna.png](Original image) | 
+| ![Original image](lenna.png) | 
 |:--:| 
 | *Original image* |
 
-| ![lenna_dit.png](Dithered image) | 
+| ![Dithered image](lenna_dit.png) | 
 |:--:| 
 | *Dithered image using only four colors* |
 
