@@ -11,7 +11,7 @@ This program works for PNG files, at least. However it does not work with JPEG f
 **Pro tip!** If you're on Windows you can use MS Paint to convert your images to PNG.
 
 # What is this program?
-This Go program transforms an image by applying the Bayer dithering algorithm. (https://en.wikipedia.org/wiki/Ordered_dithering)
+This program transforms an image by applying the Bayer dithering algorithm. (https://en.wikipedia.org/wiki/Ordered_dithering)
 
 # How do I run this program?
 Type this following line in your console.
@@ -28,5 +28,12 @@ These are the available flags:
 - **pal**:  palette maximum size i.e. the maximum number of colors to use in the output image.
 
 # TODO
- - Allow users to choose the size of the Bayer dithering matrix: 2, 4 or 8.
  - There is definitely a problem whith JPEG/JPG images. The resulting images are usually a very unappealing soup of pixels, sadly.
+
+ | ![Original image](johnny.png) | 
+|:--:| 
+| *Original image* |
+
+| ![Dithered image](johnny_dit.png) | 
+|:--:| 
+| *Dithered image using only two colors* |
