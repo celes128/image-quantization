@@ -17,6 +17,7 @@ func main() {
 	srcFilepath := flag.String("in", "", "input image filepath")
 	outFilepath := flag.String("out", "", "output image filepath")
 	paletteMaxSize := flag.Int("pal", 4, "maximum size of the palette")
+	bayerMatSize := flag.Int("bay", 4, "Bayer dithering matrix size (2, 4 or 8)")
 	flag.Parse()
 
 	// Open the source image file.
@@ -27,7 +28,7 @@ func main() {
 	}
 
 	// Process the image; apply color quantization.
-	outImage := QuantizeImage(img, *paletteMaxSize)
+	outImage := QuantizeImage(img, *paletteMaxSize, *bayerMatSize)
 
 	// Write the resulting image to a file.
 	err = WriteImageToFile(outImage, *outFilepath)
@@ -44,7 +45,7 @@ func main() {
 // QuantizeImage creates an image similar to the one given as input.
 // Its number of colors is reduced to approximately <paletteMaxSize> and a Bayer dithering
 // is also applied to approximate the original image.
-func QuantizeImage(img image.Image, paletteMaxSize int) image.Image {
+func QuantizeImage(img image.Image, paletteMaxSize int, bayerMatSize int) image.Image {
 	// Create a color palette from the input image.
 	palette := PaletteFromImage(img, paletteMaxSize)
 
@@ -58,7 +59,7 @@ func QuantizeImage(img image.Image, paletteMaxSize int) image.Image {
 			c := PixelColor(img, x, y)
 
 			// Apply Bayer dithering.
-			ditheredColor := BayerDithering(c, x, y, len(palette))
+			ditheredColor := BayerDithering(c, x, y, len(palette), bayerMatSize)
 
 			// Select a color from the palette.
 			outColor := NearestColor(ditheredColor, palette)
@@ -71,25 +72,57 @@ func QuantizeImage(img image.Image, paletteMaxSize int) image.Image {
 	return outImage
 }
 
-// BayerDithering transforms a pixel color using Bayer dithering of order 4, for now.
-// TODO: add a function parameter N (N = 2, 4 or 8) so that client can choose the matrix size.
-func BayerDithering(c color.RGBA, x, y int, paletteSize int) color.RGBA {
-	// Bayer matrix - Stored row by row.
-	const N = 4
-	mat := []float64{
-		0., 8., 2., 10.,
-		12., 4., 14., 6.,
-		3., 11., 1., 9.,
-		15., 7., 13., 5.,
+// Only three sizes for the Bayer matrix are supported: 2, 4 or 8.
+// If the parameter <bayerMatSize> is different from all these values then a size of 8 is selected.
+func BayerCoefficient(x, y int, bayerMatSize int) float64 {
+	if bayerMatSize != 2 && bayerMatSize != 4 && bayerMatSize != 8 {
+		bayerMatSize = 8
 	}
 
-	// Get the matrix coefficient from (x,y)
-	i := (y%N)*N + (x % N)
-	coef := mat[i] / float64(N*N)
+	// The Bayer matrices are stored in an array.
+	// This integer is the array index of the matrix coefficient.
+	i := (y%bayerMatSize)*bayerMatSize + (x % bayerMatSize)
+
+	// Retrieve the coefficient.
+	coef := 0.
+	switch bayerMatSize {
+	case 2:
+		mat := [...]float64{0., 2., 3., 1.}
+		coef = mat[i]
+	case 4:
+		mat := [...]float64{
+			0., 8., 2., 10.,
+			12., 4., 14., 6.,
+			3., 11., 1., 9.,
+			15., 7., 13., 5.,
+		}
+		coef = mat[i]
+	default:
+		// Use a matrix size of 8.
+		mat := [...]float64{
+			0., 32., 8., 40., 2., 34., 10., 42.,
+			48., 16., 56., 24., 50., 18., 58., 26.,
+			12., 44., 4., 36., 14., 46., 6., 38.,
+			60., 28., 52., 20., 62., 30., 54., 22.,
+			3., 35., 11., 43., 1., 33., 9., 41.,
+			51., 19., 59., 27., 49., 17., 57., 25.,
+			15., 47., 7., 39., 13., 45., 5., 37.,
+			63., 31., 55., 23., 61., 29., 53., 21.,
+		}
+		coef = mat[i]
+	}
+
+	coef /= float64(bayerMatSize * bayerMatSize)
 	coef -= 0.5
 
-	R := 255. / (float64(paletteSize))
+	return coef
+}
 
+// BayerDithering transforms a pixel color using Bayer dithering of order 4, for now.
+// TODO: add a function parameter N (N = 2, 4 or 8) so that client can choose the matrix size.
+func BayerDithering(c color.RGBA, x, y int, paletteSize int, bayerMatSize int) color.RGBA {
+	coef := BayerCoefficient(x, y, bayerMatSize)
+	R := 255. / (float64(paletteSize))
 	k := R * coef
 
 	// Manually add the color offset to each channel value.
