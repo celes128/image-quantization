@@ -12,7 +12,7 @@ This Go program transforms an image by applying the Bayer dithering algorithm. (
 Type this following line in your console.
 
 ```
-go run main.go -in=image.png -out=image_out.png -pal=4==
+go run main.go -in=lenna.png -out=lenna_dit.png -pal=4==
 ```
 
 This command creates a dithered image using four colors.
