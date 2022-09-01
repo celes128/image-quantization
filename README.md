@@ -1,5 +1,10 @@
-![Original image](lenna.png "Original image")
-![Dithered image](lenna_dit.png "Dithered image")
+| ![lenna.png](Original image) | 
+|:--:| 
+| *Original image* |
+
+| ![lenna_dit.png](Dithered image) | 
+|:--:| 
+| *Dithered image using only four colors* |
 
 # Important note!
 This program works for PNG files, at least. However it does not work with JPEG files.
