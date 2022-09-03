@@ -20,15 +20,15 @@ func main() {
 	bayerMatSize := flag.Int("bay", 4, "Bayer dithering matrix size (2, 4 or 8)")
 	flag.Parse()
 
-	// Open the source image file.
-	img, err := GetImageFromFilePath(*srcFilepath)
+	// Get the source image from its file.
+	inImage, err := GetImageFromFilePath(*srcFilepath)
 	if err != nil {
 		fmt.Printf("%v", err)
 		return
 	}
 
-	// Process the image; apply color quantization.
-	outImage := QuantizeImage(img, *paletteMaxSize, *bayerMatSize)
+	// Process the image.
+	outImage := TransformImage(inImage, *paletteMaxSize, *bayerMatSize)
 
 	// Write the resulting image to a file.
 	err = WriteImageToFile(outImage, *outFilepath)
@@ -42,15 +42,21 @@ func main() {
 // 			Image processing functions.
 //
 
-// QuantizeImage creates an image similar to the one given as input.
-// Its number of colors is reduced to approximately <paletteMaxSize> and a Bayer dithering
-// is also applied to approximate the original image.
-func QuantizeImage(img image.Image, paletteMaxSize int, bayerMatSize int) image.Image {
-	// Create a color palette from the input image.
+// TransformImage is the image processing function of this file.
+// The original image is not modified; a new, modified copy of it is created and returned.
+func TransformImage(img image.Image, paletteMaxSize int, bayerMatSize int) image.Image {
+	// We first extract a color palette from the source image.
 	palette := PaletteFromImage(img, paletteMaxSize)
 
+	// We then apply the Bayer dithering with this color palette.
+	out := BayerDitherImage(img, palette, bayerMatSize)
+
+	return out
+}
+
+func BayerDitherImage(img image.Image, palette []color.RGBA, bayerMatSize int) image.Image {
 	// Create the resulting image; undefined pixel colors for now.
-	outImage := image.NewRGBA(img.Bounds())
+	out := image.NewRGBA(img.Bounds())
 
 	// Compute its pixels by applying dithering to the source image.
 	for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
@@ -58,20 +64,21 @@ func QuantizeImage(img image.Image, paletteMaxSize int, bayerMatSize int) image.
 			// Get the pixel color in the source image.
 			c := PixelColor(img, x, y)
 
-			// Apply Bayer dithering.
+			// Apply Bayer dithering to it.
 			ditheredColor := BayerDithering(c, x, y, len(palette), bayerMatSize)
 
-			// Select a color from the palette.
+			// Find an approximated color in the palette.
 			outColor := NearestColor(ditheredColor, palette)
 
-			// Finally we can write the pixel color in the result image.
-			outImage.Set(x, y, outColor)
+			// Write the pixel color in the result image.
+			out.Set(x, y, outColor)
 		}
 	}
 
-	return outImage
+	return out
 }
 
+// BayerCoefficient returns the Bayer matrix coefficient for a given pixel coordinate.
 // Only three sizes for the Bayer matrix are supported: 2, 4 or 8.
 // If the parameter <bayerMatSize> is different from all these values then a size of 8 is selected.
 func BayerCoefficient(x, y int, bayerMatSize int) float64 {
