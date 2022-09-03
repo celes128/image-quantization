@@ -65,7 +65,7 @@ func BayerDitherImage(img image.Image, palette []color.RGBA, bayerMatSize int) i
 			c := PixelColor(img, x, y)
 
 			// Apply Bayer dithering to it.
-			ditheredColor := BayerDithering(c, x, y, len(palette), bayerMatSize)
+			ditheredColor := BayerDitherPixel(c, x, y, len(palette), bayerMatSize)
 
 			// Find an approximated color in the palette.
 			outColor := NearestColor(ditheredColor, palette)
@@ -125,9 +125,10 @@ func BayerCoefficient(x, y int, bayerMatSize int) float64 {
 	return coef
 }
 
-// BayerDithering transforms a pixel color using Bayer dithering of order 4, for now.
+// BayerDitherPixel transforms a pixel color using Bayer dithering of order 4, for now.
 // TODO: add a function parameter N (N = 2, 4 or 8) so that client can choose the matrix size.
-func BayerDithering(c color.RGBA, x, y int, paletteSize int, bayerMatSize int) color.RGBA {
+func BayerDitherPixel(c color.RGBA, x, y int, paletteSize int, bayerMatSize int) color.RGBA {
+	// Retrive the Bayer matrix coefficient for the pixel (x,y).
 	coef := BayerCoefficient(x, y, bayerMatSize)
 	R := 255. / (float64(paletteSize))
 	k := R * coef
@@ -241,10 +242,9 @@ func RedSortedImagePixels(img image.Image) []color.RGBA {
 	return pixels
 }
 
-// NearestColor returns the palette color that is the closest to the given color c.
+// NearestColor returns the palette color that is the closest to a given color.
 // The distance in the color space is the Euclidean distance.
 func NearestColor(c color.RGBA, palette []color.RGBA) color.RGBA {
-	// Assert(len(palette) >= 1)
 	minD := ColorDistance(c, palette[0])
 	nearest := palette[0]
 
